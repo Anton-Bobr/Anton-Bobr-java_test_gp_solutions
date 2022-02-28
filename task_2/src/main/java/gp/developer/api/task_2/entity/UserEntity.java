@@ -9,7 +9,6 @@ import javax.validation.constraints.Size;
 @Getter@Setter
 @EqualsAndHashCode (exclude = {"id"})
 @NoArgsConstructor
-//@RequiredArgsConstructor
 public class UserEntity {
 
     @Id

@@ -58,8 +58,8 @@ public class UserService {
         if (userEntityList.get(0).equals(userEntityList.get(1))) {
             throw new DeveloperNotFoundException("ERROR User 1 = User 2");
         }
-        UserEntity userEntityNew = userRepository.findByNameAndEmail(userEntityList.get(1).getName(),
-                                                                    userEntityList.get(1).getEmail());
+        UserEntity userEntityNew = userRepository.findByEmail(userEntityList.get(1).getEmail());
+
         UserEntity userEntityOld = userRepository.findByNameAndEmail(userEntityList.get(0).getName(),
                                                                     userEntityList.get(0).getEmail());
 
