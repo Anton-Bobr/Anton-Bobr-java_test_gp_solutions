@@ -1,13 +1,14 @@
 package gp.developer.api.task_2.controllers;
 
-import gp.developer.api.task_2.entity.UserEntity;
+import gp.developer.api.task_2.entity.DeveloperEntity;
 import gp.developer.api.task_2.exception.DeveloperNotFoundException;
-import gp.developer.api.task_2.service.UserService;
+import gp.developer.api.task_2.service.DeveloperService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,18 +16,18 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/developer")
 @Api("Сontroller for operations with the user entity")
-public class UserController {
+public class DeveloperController {
 
     @Autowired
-    private UserService userService;
+    private DeveloperService developerService;
 
     @PostMapping("/add")
     @ApiOperation("Adding a new user")
-    public ResponseEntity addUser(@RequestBody UserEntity userEntity) {
+    public ResponseEntity addDeveloper(@RequestBody DeveloperEntity developerEntity) {
         try {
-            return ResponseEntity.ok(userService.addUser(userEntity));
+            return new ResponseEntity(developerService.addDeveloper(developerEntity), HttpStatus.CREATED);
         } catch (DeveloperNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
@@ -36,9 +37,9 @@ public class UserController {
 
     @GetMapping("/get")
     @ApiOperation("Getting a specific user")
-    public ResponseEntity getUser(@RequestBody UserEntity userEntity) {
+    public ResponseEntity getDeveloper(@RequestBody DeveloperEntity developerEntity) {
         try {
-            return ResponseEntity.ok(userService.getUser(userEntity));
+            return new ResponseEntity(developerService.getDeveloper(developerEntity), HttpStatus.OK);
         } catch (DeveloperNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
@@ -49,9 +50,9 @@ public class UserController {
 
     @DeleteMapping("/delete")
     @ApiOperation("Deleting a specific user")
-    public ResponseEntity deleteUser(@RequestBody UserEntity userEntity) {
+    public ResponseEntity deleteDeveloper(@RequestBody DeveloperEntity developerEntity) {
         try {
-            return ResponseEntity.ok(userService.deleteUser(userEntity));
+            return new ResponseEntity(developerService.deleteDeveloper(developerEntity), HttpStatus.OK);
         } catch (DeveloperNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
@@ -61,9 +62,9 @@ public class UserController {
 
     @PutMapping("/update")
     @ApiOperation("Changing user options")
-    public ResponseEntity updateUser(@RequestBody List<UserEntity> userEntityList) {
+    public ResponseEntity updateDeveloper(@RequestBody List<DeveloperEntity> developerEntityList) {
         try {
-            return ResponseEntity.ok(userService.updateUser(userEntityList));
+            return new ResponseEntity(developerService.updateDeveloper(developerEntityList), HttpStatus.OK);
         } catch (DeveloperNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
