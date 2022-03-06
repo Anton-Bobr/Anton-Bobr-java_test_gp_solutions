@@ -2,12 +2,10 @@ package gp.developer.api.task_2.service;
 
 
 import gp.developer.api.task_2.entity.DeveloperEntity;
-import gp.developer.api.task_2.exception.DeveloperNotFoundException;
+import gp.developer.api.task_2.exception.*;
 import gp.developer.api.task_2.repository.DeveloperRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class DeveloperService {
@@ -15,24 +13,26 @@ public class DeveloperService {
     @Autowired
     private DeveloperRepository developerRepository;
 
-    public DeveloperEntity addDeveloper(DeveloperEntity developerEntity) throws DeveloperNotFoundException {
-
+    public DeveloperEntity addDeveloper(DeveloperEntity developerEntity) throws DeveloperMailNotUniqueException,
+                                                                                NameValidateException {
         try {
             checkMailUniqueness(developerEntity.getEmail());
             checkNameValidate(developerEntity.getName());
             checkNameLengthValidate(developerEntity.getName());
         }
-        catch (DeveloperNotFoundException e) {
+        catch (DeveloperMailNotUniqueException | NameValidateException  e) {
             throw e;
         }
         return developerRepository.save(developerEntity);
     }
 
-    public DeveloperEntity getDeveloper(DeveloperEntity developerEntity) throws DeveloperNotFoundException {
-        DeveloperEntity developerEntityDB = developerRepository.findByNameAndEmail(developerEntity.getName(),
-                                                                    developerEntity.getEmail());
-        if (developerEntityDB == null) {
-            throw new DeveloperNotFoundException("ERROR Developer dont found");
+    public DeveloperEntity getDeveloper(long id) throws DeveloperNotFoundException {
+        DeveloperEntity developerEntityDB;
+        try {
+            developerEntityDB = checkDeveloperInDBbyId(id);
+        }
+        catch (DeveloperNotFoundException e) {
+            throw e;
         }
         return developerEntityDB;
     }
@@ -40,7 +40,8 @@ public class DeveloperService {
     public String deleteDeveloper(DeveloperEntity developerEntity) throws DeveloperNotFoundException {
         DeveloperEntity developerEntityDB;
         try {
-            developerEntityDB = checkDeveloperInBD(developerEntity);
+            developerEntityDB = checkDeveloperInDBbyNameAndEmail(developerEntity.getName(),
+                                                                    developerEntity.getEmail());
         }
         catch (DeveloperNotFoundException e) {
             throw e;
@@ -49,59 +50,73 @@ public class DeveloperService {
         return "OK Developer has been successfully deleted";
     }
 
-    public DeveloperEntity updateDeveloper(List<DeveloperEntity> developerEntityList) throws DeveloperNotFoundException {
+    public DeveloperEntity updateDeveloper(DeveloperEntity developerEntityNew, long id)
+            throws DeveloperNotFoundException,
+                    DeveloperUpdateBadRequestException,
+                    DeveloperMailNotUniqueException,
+                    NameValidateException {
 
-        DeveloperEntity developerEntityOld;
+        DeveloperEntity developerEntityDB;
         try {
-            requestsUpdateValidate(developerEntityList);
-            developerEntityOld = checkDeveloperInBD(developerEntityList.get(0));
-            checkMailUniqueness(developerEntityList.get(1).getEmail());
+            developerEntityDB = checkDeveloperInDBbyId(id);
+            if ( ! developerEntityDB.getEmail().equals(developerEntityNew.getEmail())) {
+                checkMailUniqueness(developerEntityNew.getEmail());
+            }
+            requestsUpdateValidate(developerEntityNew, developerEntityDB);
+            checkNameValidate(developerEntityNew.getName());
+            checkNameLengthValidate(developerEntityNew.getName());
         }
-        catch (DeveloperNotFoundException e) {
+        catch (DeveloperNotFoundException | DeveloperMailNotUniqueException
+                | NameValidateException | DeveloperUpdateBadRequestException e) {
             throw e;
         }
-        developerEntityOld.setName(developerEntityList.get(1).getName());
-        developerEntityOld.setEmail(developerEntityList.get(1).getEmail());
+        developerEntityDB.setName(developerEntityNew.getName());
+        developerEntityDB.setEmail(developerEntityNew.getEmail());
 
-        return developerRepository.save(developerEntityOld);
+        return developerRepository.save(developerEntityDB);
     }
-
-    public boolean checkMailUniqueness (String email ) throws DeveloperNotFoundException {
+    // -----------------------------------------------------------------------------------------------------------------
+    public boolean checkMailUniqueness (String email ) throws DeveloperMailNotUniqueException {
         if (developerRepository.findByEmail(email) != null) {
-            throw new DeveloperNotFoundException("ERROR Developer with this email exists");
+            throw new DeveloperMailNotUniqueException();
         }
         return true;
     }
 
-    public boolean checkNameValidate (String name) throws DeveloperNotFoundException {
+    public boolean checkNameValidate (String name) throws NameValidateException {
         if (name.substring(0, 1).matches("[^a-zA-Z]")) {
-            throw new DeveloperNotFoundException("ERROR The name must start with a letter");
+            throw new NameValidateException("ERROR The name must start with a letter");
         }
         return true;
     }
 
-    public boolean checkNameLengthValidate (String name) throws DeveloperNotFoundException {
+    public boolean checkNameLengthValidate (String name) throws NameValidateException {
         if (name.length() > 50 || name.length() < 2) {
-            throw new DeveloperNotFoundException("ERROR name must be between 2 and 50 characters");
+            throw new NameValidateException("ERROR name must be between 2 and 50 characters");
         }
         return true;
     }
 
-    public DeveloperEntity checkDeveloperInBD(DeveloperEntity developerEntity) throws DeveloperNotFoundException {
-        DeveloperEntity developerEntityDB = developerRepository.findByNameAndEmail(developerEntity.getName(),
-                developerEntity.getEmail());
+    public DeveloperEntity checkDeveloperInDBbyId(long id) throws DeveloperNotFoundException {
+        DeveloperEntity developerEntityDB = developerRepository.findById(id);
         if (developerEntityDB == null) {
-            throw new DeveloperNotFoundException("ERROR Developer dont found");
+            throw new DeveloperNotFoundException();
         }
         return developerEntityDB;
     }
 
-    public boolean requestsUpdateValidate (List<DeveloperEntity> developerEntityList) throws DeveloperNotFoundException {
-        if (developerEntityList.size() != 2 ) {
-            throw new DeveloperNotFoundException("ERROR Bad request");
+    public DeveloperEntity checkDeveloperInDBbyNameAndEmail(String name, String email) throws DeveloperNotFoundException {
+        DeveloperEntity developerEntityDB = developerRepository.findByNameAndEmail(name, email);
+        if (developerEntityDB == null) {
+            throw new DeveloperNotFoundException();
         }
-        if (developerEntityList.get(0).equals(developerEntityList.get(1))) {
-            throw new DeveloperNotFoundException("ERROR Developer 1 = Developer 2");
+        return developerEntityDB;
+    }
+
+    public boolean requestsUpdateValidate (DeveloperEntity developerEntityNew,
+                                           DeveloperEntity developerEntityDB) throws DeveloperUpdateBadRequestException {
+        if (developerEntityNew.equals(developerEntityDB)) {
+            throw new DeveloperUpdateBadRequestException();
         }
         return true;
     }

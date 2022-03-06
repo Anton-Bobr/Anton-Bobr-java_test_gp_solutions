@@ -7,4 +7,6 @@ public interface DeveloperRepository extends CrudRepository <DeveloperEntity, Lo
     DeveloperEntity findByName (String name);
     DeveloperEntity findByEmail (String email);
     DeveloperEntity findByNameAndEmail (String name, String email);
+    DeveloperEntity findById (long id);
+
 }

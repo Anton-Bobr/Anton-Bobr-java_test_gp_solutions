@@ -1,7 +1,10 @@
 package gp.developer.api.task_2.controllers;
 
 import gp.developer.api.task_2.entity.DeveloperEntity;
+import gp.developer.api.task_2.exception.DeveloperMailNotUniqueException;
 import gp.developer.api.task_2.exception.DeveloperNotFoundException;
+import gp.developer.api.task_2.exception.DeveloperUpdateBadRequestException;
+import gp.developer.api.task_2.exception.NameValidateException;
 import gp.developer.api.task_2.service.DeveloperService;
 
 import io.swagger.annotations.Api;
@@ -12,8 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 
 @RestController
 @RequestMapping("/developer")
@@ -23,23 +24,23 @@ public class DeveloperController {
     @Autowired
     private DeveloperService developerService;
 
-    @PostMapping("/add")
-    @ApiOperation("Adding a new user")
+    @PostMapping("/")
+    @ApiOperation("Adding a new developer")
     public ResponseEntity addDeveloper(@RequestBody DeveloperEntity developerEntity) {
         try {
             return new ResponseEntity(developerService.addDeveloper(developerEntity), HttpStatus.CREATED);
-        } catch (DeveloperNotFoundException e) {
+        } catch (DeveloperMailNotUniqueException | NameValidateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("ERROR");
         }
     }
 
-    @GetMapping("/get")
-    @ApiOperation("Getting a specific user")
-    public ResponseEntity getDeveloper(@RequestBody DeveloperEntity developerEntity) {
+    @GetMapping("/")
+    @ApiOperation("Getting a specific developer")
+    public ResponseEntity getDeveloper(@RequestParam long id) {
         try {
-            return new ResponseEntity(developerService.getDeveloper(developerEntity), HttpStatus.OK);
+            return new ResponseEntity(developerService.getDeveloper(id), HttpStatus.OK);
         } catch (DeveloperNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
@@ -47,9 +48,8 @@ public class DeveloperController {
         }
     }
 
-
-    @DeleteMapping("/delete")
-    @ApiOperation("Deleting a specific user")
+    @DeleteMapping("/")
+    @ApiOperation("Deleting a specific developer")
     public ResponseEntity deleteDeveloper(@RequestBody DeveloperEntity developerEntity) {
         try {
             return new ResponseEntity(developerService.deleteDeveloper(developerEntity), HttpStatus.OK);
@@ -60,12 +60,15 @@ public class DeveloperController {
         }
     }
 
-    @PutMapping("/update")
-    @ApiOperation("Changing user options")
-    public ResponseEntity updateDeveloper(@RequestBody List<DeveloperEntity> developerEntityList) {
+    @PutMapping("/")
+    @ApiOperation("Changing developer options")
+    public ResponseEntity updateDeveloper(@RequestParam long id, @RequestBody DeveloperEntity developerEntity) {
         try {
-            return new ResponseEntity(developerService.updateDeveloper(developerEntityList), HttpStatus.OK);
-        } catch (DeveloperNotFoundException e) {
+            return new ResponseEntity(developerService.updateDeveloper(developerEntity, id), HttpStatus.OK);
+        } catch (DeveloperNotFoundException
+                | DeveloperUpdateBadRequestException
+                | DeveloperMailNotUniqueException
+                | NameValidateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("ERROR");

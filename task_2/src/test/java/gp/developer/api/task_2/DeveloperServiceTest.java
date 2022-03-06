@@ -1,7 +1,10 @@
 package gp.developer.api.task_2;
 
 import gp.developer.api.task_2.entity.DeveloperEntity;
+import gp.developer.api.task_2.exception.DeveloperMailNotUniqueException;
 import gp.developer.api.task_2.exception.DeveloperNotFoundException;
+import gp.developer.api.task_2.exception.DeveloperUpdateBadRequestException;
+import gp.developer.api.task_2.exception.NameValidateException;
 import gp.developer.api.task_2.repository.DeveloperRepository;
 import gp.developer.api.task_2.service.DeveloperService;
 import org.junit.jupiter.api.Test;
@@ -11,9 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,12 +32,11 @@ public class DeveloperServiceTest {
     private DeveloperService developerService;
 
     @Test
-    public void addDeveloperOK () throws DeveloperNotFoundException {
+    public void addDeveloperOK () throws DeveloperMailNotUniqueException, NameValidateException {
 
-        String email = "email_1";
-        DeveloperEntity developerEntity = new DeveloperEntity("user_1",email);
+        DeveloperEntity developerEntity = new DeveloperEntity("user_1","email_1");
 
-        when(developerRepository.save(any(DeveloperEntity.class))).thenReturn(developerEntity);
+        when(developerRepository.save(developerEntity)).thenReturn(developerEntity);
 
         DeveloperEntity developerEntitySave = developerService.addDeveloper(developerEntity);
 
@@ -48,10 +47,12 @@ public class DeveloperServiceTest {
 
         String name = "user_1";
         String email = "email_1";
-        DeveloperEntity developerEntity = new DeveloperEntity(name, email);
+        long id = 1L;
+        DeveloperEntity developerEntity = new DeveloperEntity(name, email, id);
 
-        when(developerRepository.findByNameAndEmail(any(String.class), any(String.class))).thenReturn(developerEntity);
-        DeveloperEntity developerEntityGet = developerService.getDeveloper(developerEntity);
+        when(developerRepository.findById(id)).thenReturn(developerEntity);
+
+        DeveloperEntity developerEntityGet = developerService.getDeveloper(id);
 
         assertEquals(developerEntityGet, developerEntity);
     }
@@ -61,7 +62,6 @@ public class DeveloperServiceTest {
         DeveloperEntity developerEntity = new DeveloperEntity("user_1", "email_1");
 
         when(developerRepository.findByNameAndEmail(any(String.class), any(String.class))).thenReturn(developerEntity);
-//        when(developerService.checkDeveloperInBD(any(DeveloperEntity.class))).thenReturn(developerEntity); // need to figure out why it doesn't work
 
         String result = developerService.deleteDeveloper(developerEntity);
         verify(developerRepository).delete(developerEntity);
@@ -69,90 +69,99 @@ public class DeveloperServiceTest {
     }
 
     @Test
-    public void updateDeveloperOK () throws DeveloperNotFoundException {
-
-        DeveloperEntity developerEntityOld = new DeveloperEntity("user_1", "email_1");
+    public void updateDeveloperOK () throws DeveloperNotFoundException, DeveloperMailNotUniqueException,
+                                            NameValidateException, DeveloperUpdateBadRequestException {
+        long id = 1L;
+        DeveloperEntity developerEntityDB = new DeveloperEntity("user_1", "email_1", id);
         DeveloperEntity developerEntityNew = new DeveloperEntity("user_2", "email_2");
-        List<DeveloperEntity> developerEntityList = new ArrayList<>();
-        developerEntityList.add(developerEntityOld);
-        developerEntityList.add(developerEntityNew);
 
-        when(developerRepository.findByNameAndEmail(any(String.class), any(String.class))).thenReturn(developerEntityList.get(0));
-//        when(developerRepository.save(any(DeveloperEntity.class))).thenReturn(developerEntityNew);
+        when(developerRepository.findById(id)).thenReturn(developerEntityDB);
+//        when(developerRepository.findById(id)).thenReturn(developerEntity);
 
-        developerService.updateDeveloper(developerEntityList);
+        developerService.updateDeveloper(developerEntityNew, id);
 
-        verify(developerRepository).save(developerEntityList.get(1));
+        verify(developerRepository).save(developerEntityDB);
     }
 
     @Test
-    public void checkMailUniquenessTest () throws DeveloperNotFoundException {
+    public void checkMailUniquenessTest () throws DeveloperMailNotUniqueException {
         String email = "email_1";
 
-        when(developerRepository.findByEmail(any(String.class))).thenReturn(null);
-        boolean result = developerService.checkMailUniqueness(email);
+        DeveloperEntity developerEntity = new DeveloperEntity("user_1", email, 1L);
 
+
+        when(developerRepository.findByEmail(any(String.class))).thenReturn(null);
+
+        boolean result = developerService.checkMailUniqueness(email);
         assertTrue(result);
+
+        when(developerRepository.findByEmail(email)).thenReturn(developerEntity);
+
+        assertThrows(DeveloperMailNotUniqueException.class, () ->
+                developerService.checkMailUniqueness(email));
+
     }
 
     @Test
-    public void checkNameValidateTest () throws DeveloperNotFoundException {
+    public void checkNameValidateTest () throws NameValidateException {
 
         assertTrue(developerService.checkNameValidate("user_1"));
-        assertThrows(DeveloperNotFoundException.class, () ->
+        assertThrows(NameValidateException.class, () ->
                 developerService.checkNameValidate("1_user_1"));
     }
     @Test
-    public void checkNameLengthValidateTest () throws DeveloperNotFoundException {
-        assertThrows(DeveloperNotFoundException.class, () ->
+    public void checkNameLengthValidateTest () throws NameValidateException {
+        assertThrows(NameValidateException.class, () ->
                 developerService.checkNameLengthValidate("u"));
 
         assertTrue(developerService.checkNameLengthValidate("user_1"));
 
-        assertThrows(DeveloperNotFoundException.class, () ->
+        assertThrows(NameValidateException.class, () ->
                 developerService.checkNameLengthValidate("u123456789_123456789_123456789_123456789_0123456789"));
     }
     @Test
-    public void checkDeveloperInBDTest () throws DeveloperNotFoundException {
+    public void checkDeveloperInDBbyIdTest () throws DeveloperNotFoundException {
         String name = "user_1";
         String email = "email_1";
-        DeveloperEntity developerEntity = new DeveloperEntity(name, email);
+        long id = 1L;
+        DeveloperEntity developerEntity = new DeveloperEntity(name, email, id);
 
-        when(developerRepository.findByNameAndEmail(any(String.class),any(String.class))).thenReturn(developerEntity);
-        DeveloperEntity developerEntityDB = developerService.checkDeveloperInBD(developerEntity);
+        when(developerRepository.findById(id)).thenReturn(developerEntity);
+        DeveloperEntity developerEntityDB = developerService.checkDeveloperInDBbyId(id);
 
         assertEquals(developerEntityDB, developerEntity);
 
-        when(developerRepository.findByNameAndEmail(any(String.class),any(String.class))).thenReturn(null);
+        when(developerRepository.findById(id)).thenReturn(null);
 
         assertThrows(DeveloperNotFoundException.class, () ->
-                developerService.checkDeveloperInBD(developerEntity));
+                developerService.checkDeveloperInDBbyId(id));
     }
     @Test
-    public void requestsUpdateValidateTest () throws DeveloperNotFoundException {
-        DeveloperEntity developerEntity_1 = new DeveloperEntity("user_1", "email_1");
-        DeveloperEntity developerEntity_2 = new DeveloperEntity("user_2", "email_2");
-        DeveloperEntity developerEntity_3 = new DeveloperEntity("user_2", "email_2");
+    public void checkDeveloperInDBbyNameAndEmailTest () throws DeveloperNotFoundException {
+        String name = "user_1";
+        String email = "email_1";
+        long id = 1L;
+        DeveloperEntity developerEntity = new DeveloperEntity(name, email, id);
 
-        List<DeveloperEntity> developerEntityList_1 = new ArrayList<>();
-        developerEntityList_1.add(developerEntity_1);
-        developerEntityList_1.add(developerEntity_2);
+        when(developerRepository.findByNameAndEmail(name, email)).thenReturn(developerEntity);
+        DeveloperEntity developerEntityDB = developerService.checkDeveloperInDBbyNameAndEmail(name, email);
 
-        List<DeveloperEntity> developerEntityList_2 = new ArrayList<>();
-        developerEntityList_2.add(developerEntity_1);
-        developerEntityList_2.add(developerEntity_2);
-        developerEntityList_2.add(developerEntity_3);
+        assertEquals(developerEntityDB, developerEntity);
 
-        List<DeveloperEntity> developerEntityList_3 = new ArrayList<>();
-        developerEntityList_3.add(developerEntity_2);
-        developerEntityList_3.add(developerEntity_3);
-
-        assertTrue(developerService.requestsUpdateValidate(developerEntityList_1));
+        when(developerRepository.findByNameAndEmail(any(String.class), any(String.class))).thenReturn(null);
 
         assertThrows(DeveloperNotFoundException.class, () ->
-                developerService.requestsUpdateValidate(developerEntityList_2));
+                developerService.checkDeveloperInDBbyNameAndEmail(name, email));
+    }
+    @Test
+    public void requestsUpdateValidateTest () throws DeveloperUpdateBadRequestException {
+        DeveloperEntity developerEntityDB = new DeveloperEntity("user_1", "email_1");
+        DeveloperEntity developerEntityNew_1 = new DeveloperEntity("user_1", "email_1");
+        DeveloperEntity developerEntityNew_2 = new DeveloperEntity("user_2", "email_2");
 
-        assertThrows(DeveloperNotFoundException.class, () ->
-                developerService.requestsUpdateValidate(developerEntityList_3));
+        assertTrue(developerService.requestsUpdateValidate(developerEntityDB, developerEntityNew_2));
+
+        assertThrows(DeveloperUpdateBadRequestException.class, () ->
+                developerService.requestsUpdateValidate(developerEntityDB, developerEntityNew_1));
     }
 }
