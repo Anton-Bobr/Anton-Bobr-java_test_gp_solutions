@@ -61,34 +61,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 System.err.println(e);
             }
         }
-
-//        String jwtToken = null;
-//        try {
-//            jwtToken = parseJwt(request).orElseThrow(() -> new AuthenticateAuthorizationException("You need JWT token for authorization"));
-//        } catch (AuthenticateAuthorizationException e) {
-//            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-//            System.err.println(e);
-//        }
-
-//        try {
-//            if (jwtUtils.validateJwtToken(jwtToken)) {
-//                List <String> roles = new ArrayList<String>(jwtUtils.getRoleFromJwtToken(jwtToken));
-//
-//                UserDetails user = User.withDefaultPasswordEncoder()
-//                        .username("user")
-//                        .password("password")
-//                        .roles(roles.toArray(new String[0]))
-//                        .build();
-//
-//                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-//                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-//            }
-//        }catch (AuthenticateAuthorizationException e) {
-//            response.setStatus(HttpStatus.FORBIDDEN.value());
-//            System.err.println(e);
-//        }
-
         filterChain.doFilter(request, response);
     }
 
@@ -100,13 +72,4 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
         return null;
     }
-
-//    private Optional<String> parseJwt(HttpServletRequest request) {
-//        String headerAuth = request.getHeader("Authorization");
-//        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-//            return Optional.of(headerAuth.substring(7, headerAuth.length()));
-//        }
-//        return Optional.empty();
-//    }
-
 }

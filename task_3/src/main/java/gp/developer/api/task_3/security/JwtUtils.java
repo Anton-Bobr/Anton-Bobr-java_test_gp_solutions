@@ -14,15 +14,6 @@ public class JwtUtils {
 
     private static String key = System.getenv().get("SECRET_KEY");
 
-//    public static void main(String[] args) {
-//
-//        String jwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEiLCJyb2xlcyI6WyJBRE1JTiIsIkhSIl0sImlzcyI6IkdQIiwiaWF0IjoxNjQ3MDQ1MzkzLCJleHAiOjE2NDcwNTEzOTN9.UTW3U1ooKYCxkR2cOQeqnrfRiU3tyg7qGLJdgQ7T558";
-//
-//        JwtUtils jwtUtils = new JwtUtils();
-//        List role = jwtUtils.getRoleFromJwtToken(jwtToken);
-//        System.out.println(role);
-//    }
-
     public static String generateJwtToken(Map<String, Object> claimsMap) {
 
         Claims claims = Jwts.claims().setSubject(String.valueOf(claimsMap.get("sub")));
