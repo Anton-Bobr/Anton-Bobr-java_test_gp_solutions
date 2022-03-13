@@ -1,50 +1,49 @@
 package gp.developer.api.task_3.security;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import gp.developer.api.task_3.exception.AuthenticateAuthorizationException;
-import gp.developer.api.task_3.exception.DeveloperNotFoundException;
-import org.apache.catalina.connector.Response;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.web.filter.GenericFilterBean;
 
-@Component
-public class JwtTokenFilter extends OncePerRequestFilter {
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-    @Autowired
+
+public class JwtTokenFilter extends GenericFilterBean {
+
     private JwtUtils jwtUtils;
 
-    @Override
-    public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException{
+    public JwtTokenFilter(JwtUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+    }
 
-        String jwtToken = parseJwt(request);
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
+            throws IOException, ServletException {
+
+        String jwtToken = parseJwt((HttpServletRequest) req);
 
         if (jwtToken == null) {
-            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            ((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED, "For authentication you need JWT token");
+            System.err.println("For authentication you need JWT token");
+            throw new JwtAuthenticationException("For authentication you need JWT token");
         } else {
             try {
-                if (jwtUtils.validateJwtToken(jwtToken)) {
-                    List <String> roles = new ArrayList<String>(jwtUtils.getRoleFromJwtToken(jwtToken));
+                boolean validate = jwtUtils.validateJwtToken(jwtToken);
+                if (validate) {
+                    List<String> roles = new ArrayList<String>(jwtUtils.getRoleFromJwtToken(jwtToken));
 
                     UserDetails user = User.withDefaultPasswordEncoder()
                             .username("user")
@@ -53,17 +52,20 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                             .build();
 
                     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails((HttpServletRequest) req));
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                } else {
+                    throw new AuthenticateAuthorizationException ("JWT token is expired or invalid");
                 }
             }catch (AuthenticateAuthorizationException e) {
-                response.setStatus(HttpStatus.FORBIDDEN.value());
-                System.err.println(e);
+                ((HttpServletResponse) res).setStatus(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+                System.err.println(e.getMessage());
+                throw new JwtAuthenticationException(e.getMessage());
             }
         }
-        filterChain.doFilter(request, response);
-    }
 
+        filterChain.doFilter(req, res);
+    }
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");

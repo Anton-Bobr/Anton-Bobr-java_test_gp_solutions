@@ -9,6 +9,8 @@ import gp.developer.api.task_3.service.DeveloperService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.Tag;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,7 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/developer")
-@Api("Сontroller for operations with the user entity")
+@Api("Сontroller for operations with the developer entity")
+//@Tag(name="Developer API", description="Сontroller for operations with the developer entit")
 public class DeveloperController {
 
     @Autowired

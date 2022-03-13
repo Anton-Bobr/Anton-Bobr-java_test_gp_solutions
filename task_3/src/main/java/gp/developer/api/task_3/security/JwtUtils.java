@@ -25,7 +25,7 @@ public class JwtUtils {
                 .setClaims(claims)
                 .setIssuer(String.valueOf(claimsMap.get("iss")))
                 .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plus(100, ChronoUnit.MINUTES)))
+                .setExpiration(Date.from(now.plus(60, ChronoUnit.MINUTES)))
                 .signWith(SignatureAlgorithm.HS256, key)
                 .compact();
     }
@@ -39,9 +39,11 @@ public class JwtUtils {
             Jwts.parser().setSigningKey(key).parseClaimsJws(jwtToken);
             JwtUtils.validateJwtTokenIss(jwtToken);
             JwtUtils.validateJwtTokenRoles(jwtToken);
-
-        } catch (MalformedJwtException | IllegalArgumentException e) {
-            throw new AuthenticateAuthorizationException("JWT token wrong");
+        } catch (MalformedJwtException | IllegalArgumentException | ExpiredJwtException e) {
+            System.err.println(e.getMessage());
+            throw new AuthenticateAuthorizationException ("JWT token is expired or invalid");
+        } catch (AuthenticateAuthorizationException e) {
+            throw new AuthenticateAuthorizationException (e.getMessage());
         }
         return true;
     }
